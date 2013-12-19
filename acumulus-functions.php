@@ -106,7 +106,6 @@ function acm_send_msg($xml_string, $url){
 
 /* msg is send after order is set to paid */
 function acm_send_invoice($order_id){
-    $order_id = 30;
     if(!$order_id){
         return;
     }
@@ -128,6 +127,5 @@ function acm_send_invoice($order_id){
     }
 }
 
-    #add_action('woocommerce_order_status_completed', 'send_invoice');
-    add_action('wp_head', 'acm_send_invoice');
+    add_action('woocommerce_order_status_completed', 'send_invoice');
 ?>
