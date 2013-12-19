@@ -1,4 +1,5 @@
 <?php
+
 /* Alter these settings if you know what you are doing.
  * These setings will be specific per API, the names of
  * table, and currently existing TABLE_FIELDS are inserted
@@ -11,11 +12,7 @@
  * Author: Richard Torenvliet
  */
 
-#    Contractcode: 580319
-#    Gebruikersnaam: sponizadev
-#    Wachtwoord: DJy9W4hK
-#
-#
+global $API_NAME, $TABLE_NAME, $TABLE_FIELDS;
 $API_NAME = "Acumulus";
 
 $TABLE_NAME = "acumulus";
@@ -27,6 +24,7 @@ $TABLE_FIELDS = array(
         "username" => "VARCHAR(32) DEFAULT '' NOT NULL",
         "password" => "VARCHAR(64) DEFAULT '' NOT NULL",
     );
+
 function render_settings($options){
     $api_url = esc_html($options->api_url);
     $contract_code  = esc_html($options->contract_code);

@@ -1,14 +1,24 @@
 <?php
-
+/**
+* Invoice-creator-common provides functionalities that can be used
+* to get information from the database(e.g, credentials), or easier to
+* use functions that get information from woocommerce.
+*
+*/
 include_once("settings.php");
 
 /* store credentials, only done after the first call*/
 $cred = null;
 
+/* concatenate first and lastname */
+function invc_get_fullname($order){
+    return $order->billing_first_name . " " . $order->billing_last_name;
+}
+
 /**
 * Get credentials from db. Settings can be changed in the admin page
 */
-function get_credentials(){
+function invc_get_credentials(){
     global $wpdb, $cred, $TABLE_NAME;
     if($cred){
         return $cred;
@@ -22,6 +32,7 @@ function get_credentials(){
 
     return $cred;
 }
+
 /**
 * Get tax rate depending on tax class and other variables
 * Depending on the tax class, the rates differ so need to be
@@ -29,7 +40,7 @@ function get_credentials(){
 * tax rate in the woocommerce -> settings -> Tax and select it when
 * creating a product.
 */
-function get_tax_rates($product_obj, $order){
+function invc_get_tax_rates($product_obj, $order){
     /* WC_Tax object */
     $taxes = new WC_Tax();
     $tax_rates = $taxes->find_rates(
@@ -54,8 +65,10 @@ function get_tax_rates($product_obj, $order){
 * obtained via the database. Default tax is 21, provide an accurate
 * tax rate in the woocommerce -> settings -> Tax and select it when
 * creating a product.
+*
+* @return - percentage (float)
 */
-function get_shiptax_rates(){
+function invc_get_shiptax_rates(){
     /* WC_Tax object */
     global $woocommerce;
 
@@ -72,10 +85,25 @@ function get_shiptax_rates(){
     return $tax_percentage;
 }
 
-/**/
-function generate_productlines($order){
-    $cred = get_credentials();
-
+/* Get important fields from all products inside the order.
+ *
+ * @param $order - WC_Order ( created by,  new WC_Order($order_id))
+ * @return array dict -
+ *            "product_id" - product_id,
+ *            "amount" - quanity of this product inside the order,
+ *            "description" - description of the order, description
+ *                      is further extended by the custom fields, given
+ *                      to the product. See settings page in admin
+ *                      section to exclude certain fields.
+ *            "tax_rate" - tax_rate, given by setting the tax rate in
+ *                            woocommerce and adding it to the product.
+ *            "price" -  price of product,
+ *
+ *       Note that a product of send_rate is slapped on as an extra
+ *       product to the order.
+ * */
+function invc_generate_productlines($order){
+    $cred = invc_get_credentials();
     $product_lines = array();
     $product_factory = new WC_Product_Factory();
 
@@ -88,7 +116,7 @@ function generate_productlines($order){
             "product_id" => $p['product_id'],
             "amount" => $p["qty"],
             "description" => $p["name"],
-            "tax_rate" => number_format((float)get_tax_rates($product_obj, $order), 2, '.', ''),
+            "tax_rate" => number_format((float)invc_get_tax_rates($product_obj, $order), 2, '.', ''),
             "price" => $product_obj->get_price_excluding_tax(),
         );
 
@@ -115,7 +143,7 @@ function generate_productlines($order){
     $s_line = array(
         "amount" => "1",
         "description" => "Send costs",
-        "tax_rate" => number_format((float)get_shiptax_rates(),2,'.',''),
+        "tax_rate" => number_format((float)invc_get_shiptax_rates(),2,'.',''),
         "price" => $order->get_shipping(),
     );
 
@@ -124,8 +152,9 @@ function generate_productlines($order){
     return $product_lines;
 }
 
+/* obtained from http://stackoverflow.com/questions/3616540/format-xml-string*/
+// debug function of xml body
 function formatXmlString($xml) {
-
   // add marker linefeeds to aid the pretty-tokeniser (adds a linefeed between all tag-end boundaries)
   $xml = preg_replace('/(>)(<)(\/*)/', "$1\n$2$3", $xml);
 
@@ -164,4 +193,3 @@ function formatXmlString($xml) {
   return $result;
 }
 ?>
-

@@ -1,22 +1,24 @@
 <?php
+/**
+ * Acumulus functions to send the invoice package to the Acumulus API.
+ */
 include_once("invoice_creator-common.php");
 
 function elog($v){
     error_log(var_export($v, true), 0);
 }
 
-function build_url($api_section){
-    $c = get_credentials();
+function acm_build_url($api_section){
+    $c = invc_get_credentials();
 
     $url_list = array(
         "invoices" => "invoices/invoice_add.php",
     );
-
     return $c->api_url . $url_list[$api_section];
 }
 
-function add_header($xml_body){
-    $cred = get_credentials();
+function acm_add_header($xml_body){
+    $cred = invc_get_credentials();
 
     return "<?xml version='1.0' encoding='UTF-8'?>
     <myxml>
@@ -34,12 +36,9 @@ function add_header($xml_body){
     return $xml_body;
 }
 
-function get_fullname($order){
-    return $order->billing_first_name . " " . $order->billing_last_name;
-}
 
 /* generate product lines xml list from array */
-function product_lines_xml($product_lines){
+function acm_product_lines_xml($product_lines){
     $p_xml = "";
     foreach($product_lines as $p){
         $p_xml .= "<line>";
@@ -54,17 +53,17 @@ function product_lines_xml($product_lines){
     return $p_xml;
 }
 
-function create_invoice_body($order){
-    $cred = get_credentials();
+function acm_create_invoice_body($order){
+    $cred = invc_get_credentials();
 
     /* see api documentation */
-    $product_lines = generate_productlines($order);
+    $product_lines = invc_generate_productlines($order);
 
-    $product_list_xml = product_lines_xml($product_lines);
+    $product_list_xml = acm_product_lines_xml($product_lines);
 
     $xml_body = "<customer>
         <type>1</type>
-        <fullname>" . get_fullname($order) ." </fullname>
+        <fullname>" . invc_get_fullname($order) ." </fullname>
         <address1>$order->billing_address_1</address1>
         <address2>$order->billing_address_2</address2>
         <postalcode>$order->billing_postcode</postalcode>
@@ -91,7 +90,11 @@ function create_invoice_body($order){
     return $xml_body;
 }
 
-function send_msg($xml_string, $url){
+/* send function via curl
+ * @param xml_string - xml body,
+ *        url - url of acumulus.
+ * */
+function acm_send_msg($xml_string, $url){
     $ch = curl_init();
     curl_setopt($ch, CURLOPT_URL, $url);
     curl_setopt($ch, CURLOPT_POST, 1);
@@ -101,7 +104,9 @@ function send_msg($xml_string, $url){
     curl_close($ch);
 }
 
-function send_invoice($order_id){
+/* msg is send after order is set to paid */
+function acm_send_invoice($order_id){
+    $order_id = 30;
     if(!$order_id){
         return;
     }
@@ -110,20 +115,19 @@ function send_invoice($order_id){
 
     try {
         /* get client nmr */
-        $invoice = create_invoice_body($order);
-        $msg = add_header($invoice);
-
-        // file_put_contents(dirname(__FILE__). "/xmlfile.xml", formatXmlString($msg));
+        $invoice = acm_create_invoice_body($order);
+        $msg = acm_add_header($invoice);
 
         /* create request object */
-        $url = build_url('invoices');
-        send_msg($msg, $url);
-        #$request = set_connection("invoices", "POST");
+        $url = acm_build_url('invoices');
+
+        /* send the msg to acumulus */
+        acm_send_msg($msg, $url);
     } catch(Exception $e) {
         error_log('Caught Exception: ' . $e->getMessage(), 0);
     }
 }
 
-#add_action('woocommerce_order_status_completed', 'send_invoice');
-add_action('wp_head', 'send_invoice');
+    #add_action('woocommerce_order_status_completed', 'send_invoice');
+    add_action('wp_head', 'acm_send_invoice');
 ?>

@@ -1,9 +1,21 @@
 <?php
+/**
+* The hooks of the plugin, hook into the admin page.
+*/
 
 include_once('settings.php');
+
+/* add to admin_menu */
 add_action('admin_menu', 'invoice_creator');
+
+/* callback to process POST request invoice */
 add_action('admin_post_invoice', 'process_invoice_options' );
 
+/**
+ * Processes the Plugin-Options Post requests.
+ * The settings.php file is used to find the name and fields defined in
+ * the database.
+ */
 function process_invoice_options(){
     global $wpdb, $TABLE_FIELDS, $API_NAME, $TABLE_NAME;
 
@@ -22,8 +34,6 @@ function process_invoice_options(){
         $options[$name] = '';
     }
 
-    elog("POST!");
-    elog($_POST);
     /* gather information from the post data and sanatize */
     foreach($options as $k => $v){
         if (isset ($_POST[$k])){
@@ -32,14 +42,15 @@ function process_invoice_options(){
             unset($options[$k]);
         }
     }
-    elog($options);
 
     /* update url */
     $wpdb->update($wpdb->prefix . $TABLE_NAME, $options, array("api_name" => $API_NAME));
 
+    /* redirect to previous page */
     wp_redirect($_SERVER['HTTP_REFERER']);
 }
 
+/* Adds Plugin Options page */
 function invoice_creator(){
     global $API_NAME;
 
@@ -52,25 +63,32 @@ function invoice_creator(){
     add_action( 'load-' . $hook_suffix , 'invoice_creator_load_function' );
 }
 
+/**
+* Current admin page is the options page for our plugin, so do not display
+* the notice. (remove the action responsible for this)
+*/
 function invoice_creator_load_function() {
-    /* Current admin page is the options page for our plugin, so do not display
-    /* the notice. (remove the action responsible for this)*/
     remove_action( 'admin_notices', 'invoice_creator_admin_notices' );
 }
 
+/* Update information */
 function invoice_creator_admin_notices(){
     echo "<div id='notice' class='updated fade'><p>Acumulus plugin is not configured yet, please do this (add API KEY and personal settings)</p></div>\n";
 }
 
-/** Step 3. */
+/**
+ * Invoice creator options, see settings.php to set the global
+ * information(TABLE_NAME etc.)
+ */
 function invoice_creator_options() {
     global $wpdb, $TABLE_FIELDS, $API_NAME, $TABLE_NAME;
-
+    /* check if user is allowd to access */
     if ( !current_user_can( 'manage_options' ) )  {
         wp_die( __( 'You do not have sufficient permissions to access this page.' ) );
     }
 
-    $fields = ['textinvoice', 'exclude_custom_fields'];
+    /* default fields */
+    $fields = array('textinvoice', 'exclude_custom_fields');
 
     /* get fields */
     foreach($TABLE_FIELDS as $name => $additional){
@@ -80,15 +98,19 @@ function invoice_creator_options() {
     /* comma seperated string as prep for select query */
     $fields = implode(',', $fields);
 
+    /* Select fields as defined in settings.php */
     $options = $wpdb->get_row( $wpdb->prepare("
         SELECT {$fields}
         FROM {$wpdb->prefix}{$TABLE_NAME}",0)
     );
-        echo '<div class="wrap">';
-        echo "<h2>$API_NAME plugin settings</h2>";
-        echo "<p>Place your credentials obtained from $API_NAME
-        the api-version and api-url are already filled in. Change them if needed.</p>";
 
+    /* start settings table */
+    echo '<div class="wrap">';
+    echo "<h2>$API_NAME plugin settings</h2>";
+    echo "<p>Place your credentials obtained from $API_NAME
+    the api-version and api-url are already filled in. Change them if needed.</p>";
+
+    /* call render settings from options */
     echo render_settings($options);
     echo '</div>';
 }
