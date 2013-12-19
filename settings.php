@@ -33,13 +33,6 @@ function render_settings($options){
     $textinvoice = esc_html($options->textinvoice);
     $exclude_custom_fields = esc_html($options->exclude_custom_fields);
 
-    error_log($api_url, 0);
-    error_log($contract_code, 0);
-    error_log($username, 0);
-    error_log($password, 0);
-    error_log($textinvoice, 0);
-    error_log($exclude_custom_fields, 0);
-
     return "
     <form method='post' action='admin-post.php'>
         <input type='hidden' name='action' value='invoice' />
