@@ -127,5 +127,5 @@ function acm_send_invoice($order_id){
     }
 }
 
-    add_action('woocommerce_order_status_completed', 'send_invoice');
+    add_action('woocommerce_order_status_completed', 'acm_send_invoice');
 ?>
